@@ -22,6 +22,7 @@ const Config = require('./lib/Config');
  * @param {Array} [options.nonExistent] - List of partials that do not exist
  * @param {Boolean} [options.isListForm=false]
  * @param {String|Object} [options.tsConfig] Path to a typescript config (or a preloaded one).
+ * @param {Object} [options.tsCompilerOptions] Pre-parsed compiler options. Use instead of tsConfig
  * @return {Object}
  */
 module.exports = function(options) {
@@ -109,7 +110,8 @@ module.exports._getDependencies = function(config) {
       config: config.requireConfig,
       webpackConfig: config.webpackConfig,
       nodeModulesConfig: config.nodeModulesConfig,
-      tsConfig: config.tsConfig
+      tsConfig: config.tsConfig,
+      tsCompilerOptions: config.tsCompilerOptions
     });
 
     if (!result) {
