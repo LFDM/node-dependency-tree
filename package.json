@@ -1,6 +1,6 @@
 {
   "name": "dependency-tree",
-  "version": "7.4.0",
+  "version": "7.5.0",
   "description": "Get the dependency tree of a module",
   "main": "index.js",
   "scripts": {
@@ -40,7 +40,7 @@
   "dependencies": {
     "commander": "^2.20.3",
     "debug": "^4.2.1",
-    "filing-cabinet": "lfdm/node-filing-cabinet#497652f",
+    "filing-cabinet": "lfdm/node-filing-cabinet#7ca1c63",
     "precinct": "^6.3.1",
     "typescript": "^3.9.7"
   },
