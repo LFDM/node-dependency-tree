@@ -1,11 +1,11 @@
-'use strict';
+"use strict";
 
-const precinct = require('precinct');
-const path = require('path');
-const fs = require('fs');
-const cabinet = require('filing-cabinet');
-const debug = require('debug')('tree');
-const Config = require('./lib/Config');
+const precinct = require("precinct");
+const path = require("path");
+const fs = require("fs");
+const cabinet = require("filing-cabinet");
+const debug = require("debug")("tree");
+const Config = require("./lib/Config");
 
 /**
  * Recursively find all dependencies (avoiding circular) traversing the entire dependency tree
@@ -25,33 +25,33 @@ const Config = require('./lib/Config');
  * @param {Object} [options.tsCompilerOptions] Pre-parsed compiler options. Use instead of tsConfig
  * @return {Object}
  */
-module.exports = function(options) {
+module.exports = function (options) {
   const config = new Config(options);
 
   if (!fs.existsSync(config.filename)) {
-    debug('file ' + config.filename + ' does not exist');
+    debug("file " + config.filename + " does not exist");
     return config.isListForm ? [] : {};
   }
 
   const results = traverse(config);
-  debug('traversal complete', results);
+  debug("traversal complete", results);
 
   dedupeNonExistent(config.nonExistent);
-  debug('deduped list of nonExistent partials: ', config.nonExistent);
+  debug("deduped list of nonExistent partials: ", config.nonExistent);
 
   let tree;
   if (config.isListForm) {
-    debug('list form of results requested');
+    debug("list form of results requested");
 
     tree = Array.from(results);
   } else {
-    debug('object form of results requested');
+    debug("object form of results requested");
 
     tree = {};
     tree[config.filename] = results;
   }
 
-  debug('final tree', tree);
+  debug("final tree", tree);
   return tree;
 };
 
@@ -67,7 +67,7 @@ module.exports = function(options) {
  *
  * Params are those of module.exports
  */
-module.exports.toList = function(options) {
+module.exports.toList = function (options) {
   options.isListForm = true;
 
   return module.exports(options);
@@ -81,7 +81,7 @@ module.exports.toList = function(options) {
  * @param  {Config} config
  * @return {Array}
  */
-module.exports._getDependencies = function(config) {
+module.exports._getDependencies = function (config) {
   let dependencies;
   const precinctOptions = config.detectiveConfig;
   precinctOptions.includeCore = false;
@@ -89,10 +89,9 @@ module.exports._getDependencies = function(config) {
   try {
     dependencies = precinct.paperwork(config.filename, precinctOptions);
 
-    debug('extracted ' + dependencies.length + ' dependencies: ', dependencies);
-
+    debug("extracted " + dependencies.length + " dependencies: ", dependencies);
   } catch (e) {
-    debug('error getting dependencies: ' + e.message);
+    debug("error getting dependencies: " + e.message);
     debug(e.stack);
     return [];
   }
@@ -102,33 +101,41 @@ module.exports._getDependencies = function(config) {
   for (let i = 0, l = dependencies.length; i < l; i++) {
     const dep = dependencies[i];
 
-    const result = cabinet({
-      partial: dep,
-      filename: config.filename,
-      directory: config.directory,
-      ast: precinct.ast,
-      config: config.requireConfig,
-      webpackConfig: config.webpackConfig,
-      nodeModulesConfig: config.nodeModulesConfig,
-      tsConfig: config.tsConfig,
-      tsCompilerOptions: config.tsCompilerOptions
-    });
+    try {
+      const result = cabinet({
+        partial: dep,
+        filename: config.filename,
+        directory: config.directory,
+        ast: precinct.ast,
+        config: config.requireConfig,
+        webpackConfig: config.webpackConfig,
+        nodeModulesConfig: config.nodeModulesConfig,
+        tsConfig: config.tsConfig,
+        tsCompilerOptions: config.tsCompilerOptions,
+      });
+      if (!result) {
+        debug("skipping an empty filepath resolution for partial: " + dep);
+        config.nonExistent.push(dep);
+        continue;
+      }
 
-    if (!result) {
-      debug('skipping an empty filepath resolution for partial: ' + dep);
-      config.nonExistent.push(dep);
-      continue;
+      const exists = fs.existsSync(result);
+
+      if (!exists) {
+        config.nonExistent.push(dep);
+        debug(
+          "skipping non-empty but non-existent resolution: " +
+            result +
+            " for partial: " +
+            dep
+        );
+        continue;
+      }
+
+      resolvedDependencies.push(result);
+    } catch (err) {
+      debug("error by cabinet", err.message, dep);
     }
-
-    const exists = fs.existsSync(result);
-
-    if (!exists) {
-      config.nonExistent.push(dep);
-      debug('skipping non-empty but non-existent resolution: ' + result + ' for partial: ' + dep);
-      continue;
-    }
-
-    resolvedDependencies.push(result);
   }
 
   return resolvedDependencies;
@@ -141,27 +148,27 @@ module.exports._getDependencies = function(config) {
 function traverse(config) {
   let subTree = config.isListForm ? new Set() : {};
 
-  debug('traversing ' + config.filename);
+  debug("traversing " + config.filename);
 
   if (config.visited[config.filename]) {
-    debug('already visited ' + config.filename);
+    debug("already visited " + config.filename);
     return config.visited[config.filename];
   }
 
   let dependencies = module.exports._getDependencies(config);
 
-  debug('cabinet-resolved all dependencies: ', dependencies);
+  debug("cabinet-resolved all dependencies: ", dependencies);
   // Prevents cycles by eagerly marking the current file as read
   // so that any dependent dependencies exit
   config.visited[config.filename] = config.isListForm ? [] : {};
 
   if (config.filter) {
-    debug('using filter function to filter out dependencies');
-    debug('unfiltered number of dependencies: ' + dependencies.length);
-    dependencies = dependencies.filter(function(filePath) {
+    debug("using filter function to filter out dependencies");
+    debug("unfiltered number of dependencies: " + dependencies.length);
+    dependencies = dependencies.filter(function (filePath) {
       return config.filter(filePath, config.filename);
     });
-    debug('filtered number of dependencies: ' + dependencies.length);
+    debug("filtered number of dependencies: " + dependencies.length);
   }
 
   for (let i = 0, l = dependencies.length; i < l; i++) {
